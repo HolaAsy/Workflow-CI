@@ -16,63 +16,68 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout Repository
-    - uses: actions/checkout@v4
+      # Checkout Repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    # Setup Python
-    - name: Set up Python 3.12.7
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12.7"
+      # Setup Python
+      - name: Set up Python 3.12.7
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.7"
 
-    # Install Dependencies
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install mlflow==2.19.0 dagshub==0.5.1
+      # Install Dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mlflow==2.19.0
+          pip install dagshub==0.5.1
 
-    # Run MLflow Project
-    - name: Run mlflow project
-      run: |
-        mlflow run MLProject --env-manager=local
+      # Run MLflow Project
+      - name: Run MLflow Project
+        run: |
+          mlflow run MLProject --env-manager=local
 
-    # Get Latest Run ID
-    - name: Get latest MLflow run_id
-      run: |
-        RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
-        echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-        echo "Latest run_id: $RUN_ID"
+      # Get Latest Run ID
+      - name: Get Latest Run ID
+        run: |
+          RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
+          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "Latest Run ID: $RUN_ID"
 
-    # Upload MLflow artifacts ke GitHub Actions
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: mlflow-artifacts
-        path: mlruns/
+      # Upload Artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-artifacts
+          path: mlruns/
 
-    # Build Docker Image
-    - name: Build Docker Model
-      run: |
-        mlflow models build-docker \
-          --model-uri "runs:/$RUN_ID/model" \
-          --name "mlflow-shopping-trends-model"
-          
+      # Setup Docker Buildx
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    # Login Docker Hub
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      # Build Docker Image
+      - name: Build Docker Model
+        run: |
+          mlflow models build-docker \
+            --model-uri "runs:/$RUN_ID/model" \
+            --name "mlflow-shopping-trends-model"
 
-    # Tag Docker Image
-    - name: Tag Docker Image
-      run: |
-        docker tag mlflow-shopping-trends-model \
+      # Login Docker Hub
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      # Tag Docker Image
+      - name: Tag Docker Image
+        run: |
+          docker tag mlflow-shopping-trends-model \
           aisyahridhalillahputri/mlflow-shopping-trends-model:latest
 
-    # Push Docker Image
-    - name: Push Docker Image
-      run: |
-        docker push \
+      # Push Docker Image
+      - name: Push Docker Image
+        run: |
+          docker push \
           aisyahridhalillahputri/mlflow-shopping-trends-model:latest
