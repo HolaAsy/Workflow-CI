@@ -3,7 +3,7 @@ channels:
 
 dependencies:
   - python=3.12.7
-  - pip
+  - pip<=24.2
 
   - pip:
       - dagshub==0.5.1
