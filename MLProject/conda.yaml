@@ -8,8 +8,10 @@ dependencies:
   - pip:
       - dagshub==0.5.1
       - mlflow==2.19.0
-      - pandas==2.2.3
+      - cloudpickle==3.1.0
       - numpy==2.2.1
+      - pandas==2.2.3
       - scikit-learn==1.6.0
+      - scipy==1.14.1
 
 name: mlflow-env
