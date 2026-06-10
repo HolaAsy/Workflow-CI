@@ -1,5 +1,6 @@
 import mlflow
 import mlflow.sklearn
+from mlflow.models import infer_signature
 import pandas as pd
 
 from sklearn.ensemble import RandomForestClassifier
@@ -54,7 +55,6 @@ if __name__ == "__main__":
         else 20
     )
 
-    # MLFLOW RUN
     with mlflow.start_run():
 
         model = RandomForestClassifier(
@@ -74,11 +74,24 @@ if __name__ == "__main__":
         # Log metric
         mlflow.log_metric("accuracy", accuracy)
 
+        # Signature model
+        signature = infer_signature(
+            X_train,
+            model.predict(X_train)
+        )
+
         # Log model
         mlflow.sklearn.log_model(
             sk_model=model,
             artifact_path="model",
-            input_example=input_example
+            signature=signature,
+            input_example=input_example,
+            pip_requirements=[
+                "mlflow==2.19.0",
+                "pandas==2.2.3",
+                "numpy==2.2.1",
+                "scikit-learn==1.6.0"
+            ]
         )
 
         print(f"Accuracy : {accuracy:.4f}")
