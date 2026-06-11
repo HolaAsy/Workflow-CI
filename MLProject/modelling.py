@@ -85,13 +85,7 @@ if __name__ == "__main__":
             sk_model=model,
             artifact_path="model",
             signature=signature,
-            input_example=input_example,
-            pip_requirements=[
-                "mlflow==2.19.0",
-                "pandas==2.2.3",
-                "numpy==2.2.1",
-                "scikit-learn==1.6.0"
-            ]
+            input_example=input_example
         )
 
         print(f"Accuracy : {accuracy:.4f}")
