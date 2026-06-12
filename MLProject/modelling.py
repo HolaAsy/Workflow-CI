@@ -1,15 +1,22 @@
 import mlflow
 import mlflow.sklearn
 from mlflow.models import infer_signature
+
 import pandas as pd
+import numpy as np
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score
+)
+
 import os
-import sys
 import warnings
-import numpy as np
 
 
 if __name__ == "__main__":
@@ -17,19 +24,21 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore")
     np.random.seed(42)
 
+    # =====================================================
     # LOAD DATASET
-    file_path = (
-        sys.argv[3]
-        if len(sys.argv) > 3
-        else os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "shopping_trends_preprocessing.csv"
-        )
+    # =====================================================
+
+    file_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "shopping_trends_preprocessing.csv"
     )
 
     data = pd.read_csv(file_path)
 
+    # =====================================================
     # FEATURE & TARGET
+    # =====================================================
+
     X = data.drop(columns=["Subscription Status"])
     y = data["Subscription Status"]
 
@@ -37,50 +46,121 @@ if __name__ == "__main__":
         X,
         y,
         test_size=0.2,
-        random_state=42
+        random_state=42,
+        stratify=y
     )
 
     input_example = X_train.head(5)
 
-    # PARAMETER MODEL
-    n_estimators = (
-        int(sys.argv[1])
-        if len(sys.argv) > 1
-        else 150
-    )
+    # =====================================================
+    # BEST PARAMETER DARI TUNING
+    # =====================================================
 
-    max_depth = (
-        int(sys.argv[2])
-        if len(sys.argv) > 2
-        else 20
+    model = RandomForestClassifier(
+        n_estimators=50,
+        max_depth=10,
+        min_samples_split=2,
+        random_state=42
     )
 
     with mlflow.start_run():
 
-        model = RandomForestClassifier(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            random_state=42
+        # TRAINING
+        model.fit(
+            X_train,
+            y_train
         )
 
-        model.fit(X_train, y_train)
+        y_pred = model.predict(
+            X_test
+        )
 
-        accuracy = model.score(X_test, y_test)
+        # =================================================
+        # METRICS
+        # =================================================
 
-        # Log parameter
-        mlflow.log_param("n_estimators", n_estimators)
-        mlflow.log_param("max_depth", max_depth)
+        accuracy = accuracy_score(
+            y_test,
+            y_pred
+        )
 
-        # Log metric
-        mlflow.log_metric("accuracy", accuracy)
+        precision = precision_score(
+            y_test,
+            y_pred,
+            average="binary",
+            zero_division=0
+        )
 
-        # Signature model
+        recall = recall_score(
+            y_test,
+            y_pred,
+            average="binary",
+            zero_division=0
+        )
+
+        f1 = f1_score(
+            y_test,
+            y_pred,
+            average="binary",
+            zero_division=0
+        )
+
+        # =================================================
+        # PARAMETERS
+        # =================================================
+
+        mlflow.log_param(
+            "n_estimators",
+            50
+        )
+
+        mlflow.log_param(
+            "max_depth",
+            10
+        )
+
+        mlflow.log_param(
+            "min_samples_split",
+            2
+        )
+
+        # =================================================
+        # METRICS
+        # =================================================
+
+        mlflow.log_metric(
+            "accuracy",
+            accuracy
+        )
+
+        mlflow.log_metric(
+            "precision",
+            precision
+        )
+
+        mlflow.log_metric(
+            "recall",
+            recall
+        )
+
+        mlflow.log_metric(
+            "f1_score",
+            f1
+        )
+
+        # =================================================
+        # MODEL SIGNATURE
+        # =================================================
+
         signature = infer_signature(
             X_train,
             model.predict(X_train)
         )
 
-        # Log model
+        # =================================================
+        # LOG MODEL
+        # =================================================
+
         mlflow.sklearn.log_model(
             sk_model=model,
             artifact_path="model",
@@ -88,4 +168,8 @@ if __name__ == "__main__":
             input_example=input_example
         )
 
-        print(f"Accuracy : {accuracy:.4f}")
+        print("\nTraining selesai")
+        print(f"Accuracy  : {accuracy:.4f}")
+        print(f"Precision : {precision:.4f}")
+        print(f"Recall    : {recall:.4f}")
+        print(f"F1 Score  : {f1:.4f}")
